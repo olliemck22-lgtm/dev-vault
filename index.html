@@ -1,1 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dev Vault</title>
+<style>
+:root{--bg:#fff;--panel:#f7f7f7;--line:#e5e5e5;--text:#151515;--muted:#777;--field:#fff;--btn:#151515;--btn-text:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#121212;--panel:#181818;--line:#2b2b2b;--text:#ececec;--muted:#8d8d8d;--field:#1b1b1b;--btn:#ececec;--btn-text:#121212;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);height:56px}
+header h1{font-size:16px;font-weight:600;margin:0;margin-right:auto}
+#saved{color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--panel)}
+.btn.dark{background:var(--btn);color:var(--btn-text);border-color:var(--btn)}
+.btn.red{color:#d33}
+.btn:disabled{opacity:.4;cursor:default}
+.app{display:grid;grid-template-columns:290px 1fr;height:calc(100% - 56px)}
+.side{border-right:1px solid var(--line);background:var(--panel);overflow-y:auto}
+.side select{width:100%;border:none;border-bottom:1px solid var(--line);background:var(--panel);padding:10px 14px}
+.item{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.item:hover,.item.on{background:var(--bg)}
+.thumb{width:38px;height:38px;border-radius:6px;background:var(--line);object-fit:cover;flex:none}
+.item .t{font-weight:600}
+.item .s{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.empty{color:var(--muted);padding:20px 14px;margin:0}
+main{overflow-y:auto;padding:24px 20px 60px}
+.form{max-width:620px}
+h2{font-size:13px;font-weight:600;color:var(--muted);margin:28px 0 10px;padding-top:16px;border-top:1px solid var(--line)}
+.f{margin-bottom:12px}
+.f label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.row{display:flex;gap:6px}
+input,textarea,select.in{width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+input:focus,textarea:focus,select.in:focus{outline:none;border-color:var(--text)}
+textarea{resize:vertical;min-height:80px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.img{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.img .thumb{width:84px;height:84px;border-radius:8px}
+.img .row{flex-wrap:wrap}
+.tw{border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:10px}
+.tw textarea{border:none;padding:2px;min-height:70px;background:transparent}
+.tw .row{align-items:center;margin-top:6px}
+.count{font-size:12px;color:var(--muted);margin-right:auto}
+.count.over{color:#d33}
+.hint{font-size:12px;color:var(--muted);margin:0 0 10px}
+.back{display:none}
+@media (max-width:720px){
+  .app{grid-template-columns:1fr}
+  main{display:none}
+  body.editing .side{display:none}
+  body.editing main{display:block}
+  body.editing .back{display:inline-block}
+  .two{grid-template-columns:1fr}
+  #exportBtn,#importBtn{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <button class="btn back" id="backBtn">Back</button>
+  <h1>Dev Vault</h1>
+  <span id="saved"></span>
+  <button class="btn" id="exportBtn">Export</button>
+  <button class="btn" id="importBtn">Import</button>
+  <button class="btn dark" id="newBtn">New coin</button>
+</header>
+<div class="app">
+  <aside class="side">
+    <select id="filter" aria-label="Filter by status"></select>
+    <div id="items"></div>
+  </aside>
+  <main id="editor"></main>
+</div>
+<input type="file" id="imgIn" accept="image/*" hidden>
+<input type="file" id="importIn" accept="application/json" hidden>
 
+<script>
+const STATUSES={idea:['Idea','#9a9a9a'],prepping:['Prepping','#d58a00'],ready:['Ready','#2f6fdb'],launched:['Launched','#1f9d55'],shelved:['Shelved','#d33']};
+let coins=[],cur=null,filter='all',timer=null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const T=c=>(c.ticker||'').toUpperCase();
+const fill=(t,c)=>String(t||'').split('{TICKER}').join(T(c)||'TICKER').split('{NAME}').join(c.name||'').split('{CA}').join(c.ca||'{CA}');
+const tweetLen=(t,c)=>[...fill(t,{...c,ca:c.ca||'x'.repeat(44)})].length;
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));
+
+/* storage (IndexedDB) */
+let dbp=null;
+function idb(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('dev-vault',1);r.onupgradeneeded=()=>r.result.createObjectStore('coins',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
+async function tx(mode,fn){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction('coins',mode);const req=fn(t.objectStore('coins'));t.oncomplete=()=>res(req&&req.result);t.onerror=()=>rej(t.error);});}
+const getAll=()=>tx('readonly',s=>s.getAll());
+const put=c=>tx('readwrite',s=>s.put(c));
+const del=id=>tx('readwrite',s=>s.delete(id));
+
+function blank(){return{id:uid(),name:'',ticker:'',description:'',image:'',status:'idea',devBuy:'',ca:'',x:'',telegram:'',website:'',notes:'',tweets:[{text:'$'+'{TICKER}\n\n{CA}'}],created:Date.now()};}
+
+/* list */
+function renderFilter(){
+  const opts=[['all','All coins',coins.length],...Object.entries(STATUSES).map(([k,[l]])=>[k,l,coins.filter(c=>c.status===k).length])];
+  $('#filter').innerHTML=opts.map(([k,l,n])=>`<option value="${k}"${k===filter?' selected':''}>${l} (${n})</option>`).join('');
+}
+function renderList(){
+  renderFilter();
+  const list=coins.filter(c=>filter==='all'||c.status===filter).sort((a,b)=>b.created-a.created);
+  $('#items').innerHTML=list.length?list.map(c=>`<div class="item${cur&&cur.id===c.id?' on':''}" data-id="${esc(c.id)}">
+    ${c.image?`<img class="thumb" src="${esc(c.image)}" alt="">`:'<div class="thumb"></div>'}
+    <div style="min-width:0"><div class="t">${T(c)?'$'+esc(T(c)):'No ticker'}</div>
+    <div class="s"><span class="dot" style="background:${(STATUSES[c.status]||STATUSES.idea)[1]}"></span>${esc(c.name||'Untitled')}</div></div></div>`).join('')
+    :`<p class="empty">${coins.length?'No coins with this status.':'No coins yet. Click New coin.'}</p>`;
+}
+
+/* editor */
+function field(k,label,o={}){
+  return `<div class="f"><label for="f_${k}">${label}</label><div class="row">
+    <input id="f_${k}" data-k="${k}" value="${esc(cur[k])}"${o.ph?` placeholder="${esc(o.ph)}"`:''}${o.type?` type="${o.type}"`:''}${o.mono?' class="mono"':''} spellcheck="false">
+    ${o.copy===false?'':`<button class="btn" type="button" data-copy="${k}">Copy</button>`}</div></div>`;
+}
+function tweetsHTML(){
+  return cur.tweets.map((t,i)=>{const n=tweetLen(t.text,cur);return `<div class="tw">
+    <textarea data-tw="${i}" aria-label="Tweet ${i+1}">${esc(t.text)}</textarea>
+    <div class="row"><span class="count${n>280?' over':''}" id="cnt${i}">${n}/280</span>
+    <button class="btn" type="button" data-copytw="${i}">Copy</button>
+    <button class="btn" type="button" data-post="${i}">Post on X</button>
+    <button class="btn red" type="button" data-rmtw="${i}">Remove</button></div></div>`;}).join('');
+}
+function renderEditor(){
+  if(!cur){$('#editor').innerHTML=`<p class="empty">${coins.length?'Pick a coin on the left.':'Click New coin to add your first one.'}</p>`;return;}
+  $('#editor').innerHTML=`<div class="form">
+    <div class="img">
+      ${cur.image?`<img class="thumb" src="${esc(cur.image)}" alt="">`:'<div class="thumb"></div>'}
+      <div class="row">
+        <button class="btn" type="button" id="upImg">${cur.image?'Replace image':'Upload image'}</button>
+        ${cur.image?`<button class="btn" type="button" id="dlImg">Download</button><button class="btn red" type="button" id="rmImg">Remove</button>`:''}
+      </div>
+    </div>
+    <div class="two">${field('name','Name',{ph:'Perception'})}${field('ticker','Ticker',{ph:'PERC',mono:true})}</div>
+    <div class="f"><label for="f_description">Description</label><textarea id="f_description" data-k="description" placeholder="Bio for the launchpad">${esc(cur.description)}</textarea>
+      <div class="row" style="margin-top:6px"><button class="btn" type="button" data-copy="description">Copy</button></div></div>
+    <div class="two">
+      <div class="f"><label for="f_status">Status</label><select class="in" id="f_status" data-k="status">${Object.entries(STATUSES).map(([k,[l]])=>`<option value="${k}"${cur.status===k?' selected':''}>${l}</option>`).join('')}</select></div>
+      ${field('devBuy','Dev buy (SOL)',{ph:'0.5',copy:false})}
+    </div>
+    ${field('ca','Contract address',{ph:'Paste after deploying',mono:true})}
+
+    <h2>Socials</h2>
+    ${field('x','X',{ph:'https://x.com/...'})}
+    ${field('telegram','Telegram',{ph:'https://t.me/...'})}
+    ${field('website','Website',{ph:'https://...'})}
+
+    <h2>Tweets</h2>
+    <p class="hint">Write {TICKER} and {CA} and they fill in when you copy or post.</p>
+    <div id="tweets">${tweetsHTML()}</div>
+    <button class="btn" type="button" id="addTw">Add tweet</button>
+
+    <h2>Notes</h2>
+    <div class="f"><textarea data-k="notes" aria-label="Notes" placeholder="Lore, timing, who to contact">${esc(cur.notes)}</textarea></div>
+
+    <h2>Danger</h2>
+    <button class="btn red" type="button" id="delCoin">Delete coin</button>
+  </div>`;
+}
+function select(id){
+  flush();
+  cur=coins.find(c=>c.id===id)||null;
+  document.body.classList.toggle('editing',!!cur);
+  renderList();renderEditor();$('#editor').scrollTop=0;
+}
+
+/* saving */
+let pending=null;
+function save(now){
+  if(!cur) return;
+  $('#saved').textContent='Saving…';
+  clearTimeout(timer);
+  const c=cur;
+  pending=()=>{pending=null;return put(JSON.parse(JSON.stringify(c))).then(()=>{$('#saved').textContent='Saved';renderList();}).catch(()=>{$('#saved').textContent='Save failed';});};
+  if(now) pending(); else timer=setTimeout(pending,400);
+}
+function flush(){if(pending){clearTimeout(timer);pending();}}
+function updateCounts(){cur.tweets.forEach((t,i)=>{const el=$('#cnt'+i);if(el){const n=tweetLen(t.text,cur);el.textContent=n+'/280';el.classList.toggle('over',n>280);}});}
+
+async function copy(text,btn){
+  try{await navigator.clipboard.writeText(text);}
+  catch{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
+  const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1000);
+}
+function download(name,url){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();}
+
+/* events */
+$('#newBtn').onclick=async()=>{const c=blank();coins.push(c);await put(c);select(c.id);$('#f_name').focus();};
+$('#backBtn').onclick=()=>{flush();cur=null;document.body.classList.remove('editing');renderList();renderEditor();};
+$('#filter').onchange=e=>{filter=e.target.value;renderList();};
+$('#items').onclick=e=>{const it=e.target.closest('.item');if(it)select(it.dataset.id);};
+
+$('#editor').addEventListener('input',e=>{
+  if(!cur) return;const t=e.target;
+  if(t.dataset.k){
+    let v=t.value;
+    if(t.dataset.k==='ticker'){v=v.replace(/[\s$]/g,'').toUpperCase();if(v!==t.value)t.value=v;}
+    if(t.dataset.k==='ca') v=v.trim();
+    cur[t.dataset.k]=v;updateCounts();save();
+  }else if(t.dataset.tw!==undefined){
+    cur.tweets[+t.dataset.tw].text=t.value;updateCounts();save();
+  }
+});
+$('#editor').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||!cur) return;
+  if(b.dataset.copy){const k=b.dataset.copy;copy(k==='ticker'?T(cur):cur[k]||'',b);}
+  else if(b.dataset.copytw!==undefined) copy(fill(cur.tweets[+b.dataset.copytw].text,cur),b);
+  else if(b.dataset.post!==undefined) window.open('https://x.com/intent/post?text='+encodeURIComponent(fill(cur.tweets[+b.dataset.post].text,cur)),'_blank','noopener');
+  else if(b.dataset.rmtw!==undefined){cur.tweets.splice(+b.dataset.rmtw,1);$('#tweets').innerHTML=tweetsHTML();save(true);}
+  else if(b.id==='addTw'){cur.tweets.push({text:''});$('#tweets').innerHTML=tweetsHTML();save(true);const all=document.querySelectorAll('[data-tw]');all[all.length-1].focus();}
+  else if(b.id==='upImg') $('#imgIn').click();
+  else if(b.id==='dlImg'){const ext=(cur.image.match(/^data:image\/(\w+)/)||[,'png'])[1].replace('jpeg','jpg');download((T(cur)||'coin').toLowerCase()+'.'+ext,cur.image);}
+  else if(b.id==='rmImg'){cur.image='';save(true);renderEditor();}
+  else if(b.id==='delCoin'){
+    if(!confirm('Delete '+(T(cur)?'$'+T(cur):'this coin')+'? This can\u2019t be undone.')) return;
+    clearTimeout(timer);pending=null;const id=cur.id;coins=coins.filter(c=>c.id!==id);del(id);cur=null;
+    document.body.classList.remove('editing');renderList();renderEditor();
+  }
+});
+$('#editor').addEventListener('change',e=>{if(e.target.dataset.k==='status') save(true);});
+
+$('#imgIn').onchange=e=>{
+  const f=e.target.files[0];e.target.value='';if(!f||!cur) return;
+  const r=new FileReader();r.onload=()=>{cur.image=r.result;save(true);renderEditor();};r.readAsDataURL(f);
+};
+$('#exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify({version:1,exported:new Date().toISOString(),coins},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);download('dev-vault-backup-'+new Date().toISOString().slice(0,10)+'.json',url);setTimeout(()=>URL.revokeObjectURL(url),2000);
+};
+$('#importBtn').onclick=()=>$('#importIn').click();
+$('#importIn').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f) return;
+  try{
+    const data=JSON.parse(await f.text());const list=Array.isArray(data)?data:data.coins;
+    if(!Array.isArray(list)) throw 0;
+    for(const c of list){if(c&&c.id){await put(c);const i=coins.findIndex(x=>x.id===c.id);i>-1?coins[i]=c:coins.push(c);}}
+    renderList();renderEditor();alert('Imported '+list.length+' coins.');
+  }catch{alert('That file isn\u2019t a Dev Vault backup.');}
+};
+
+/* boot */
+(async()=>{
+  if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+  coins=await getAll();
+  if(!coins.length&&!localStorage.getItem('dv-seeded')){
+    const p=blank();p.name='Perception';p.notes='Based on Yazeed Aljohani\u2019s (@yazed_aljohani) painting "Perception". Creator fees go to his wallet, I hold a small supply. Message him on Instagram first.';
+    await put(p);coins=[p];
+  }
+  localStorage.setItem('dv-seeded','1');
+  renderList();renderEditor();
+})();
+</script>
+</body>
+</html>
