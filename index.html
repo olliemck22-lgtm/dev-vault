@@ -168,4 +168,265 @@ function playbook(d,r){
   if(isNum(r.devBuy))p.push(`${esc(d.name)} opens with a median <b>${f2(r.devBuy)} SOL</b> dev buy`+(isNum(r.clusterSol)?` plus a <b>${f2(r.clusterCount,0)}-wallet cluster (~${f2(r.clusterSol)} SOL)</b>`:'')+(isNum(r.openPct)?`, taking <b>~${f2(r.openPct,0)}% of supply</b>`:'')+(isNum(r.entryMcap)&&isNum(r.openMcap)?` and moving mcap from ~${fmtK(r.entryMcap)} to <b>~${fmtK(r.openMcap)}</b> before outside buyers`:'')+'.');
   if(isNum(r.firstMcap))p.push(`First dev sell lands around <b>${fmtK(r.firstMcap)}</b>`+(isNum(r.firstMult)?` (<b>${f2(r.firstMult,1)}x</b> from entry)`:'')+(isNum(r.firstPct)?`, selling <b>~${f2(r.firstPct,0)}% of the bag</b>`:'')+(isNum(r.outClean)?`; about <b>${f2(r.outClean,0)}% of the dev bag is out by ${fmtK(S.settings.cleanMcap)}</b>`:'')+'.');
   if(isNum(r.recoveredRate))p.push(`He gets his initial back from early sells in <b>${f2(r.recoveredRate,0)}%</b> of logged launches.`);
-  if(isNum(r.devDay))p.push(`Daily: dev wallet averages <b class="${cls(r.devDay)}">${sg(r.devDay)}
+  if(isNum(r.devDay))p.push(`Daily: dev wallet averages <b class="${cls(r.devDay)}">${sg(r.devDay)} SOL</b> (green ${f2(r.devGreen,0)}% of days)`+(isNum(r.clDay)?`, cluster <b class="${cls(r.clDay)}">${sg(r.clDay)} SOL</b> (green ${f2(r.clGreen,0)}% of days)`:'')+'.');
+  if(isNum(r.perLaunch))p.push(`At ~${d.launchesPerDay} launches/day that's roughly <b class="${cls(r.perLaunch)}">${sg(r.perLaunch)} SOL per launch</b>.`);
+  if(isNum(r.runnerRate))p.push(`Runner rate (ATH ≥ ${fmtK(S.settings.runnerMcap)}): <b>${f2(r.runnerRate,0)}%</b>.`);
+  return p.length?p.join(' '):'Log a few launches to generate the playbook.';
+}
+function regime(r){
+  if(!isNum(r.l3cl))return '';
+  const shift=r.l3cl-r.p3cl;
+  let t=`Last 3 days: cluster <b class="${cls(r.l3cl)}">${sg(r.l3cl,1)}</b> vs prior 3 <b class="${cls(r.p3cl)}">${sg(r.p3cl,1)}</b>; dev <b class="${cls(r.l3dev)}">${sg(r.l3dev,1)}</b> vs <b class="${cls(r.p3dev)}">${sg(r.p3dev,1)}</b>.`;
+  if(r.clStreak<=-3)t+=` Cluster has been red <b>${-r.clStreak} days straight</b>: his edge on the side wallets has weakened. Check what changed in his launches.`;
+  else if(r.clStreak>=3)t+=` Cluster green <b>${r.clStreak} days straight</b>: conditions are working for him right now.`;
+  else if(Math.abs(shift)>20)t+=shift<0?' Momentum is fading.':' Momentum is picking up.';
+  return `<div class="callout">${t}</div>`;
+}
+function brainText(d,r){
+  const strip=s=>s.replace(/<[^>]+>/g,'');
+  return `## DEV PROFILE: ${d.name} (${d.wallet||'wallet n/a'})
+Sample: ${r.n} launches logged, ${r.dayN} days of PnL.
+
+Playbook: ${strip(playbook(d,r))}
+
+Key numbers:
+- Opening: dev ${f2(r.devBuy)} SOL | cluster ${f2(r.clusterCount,0)} wallets / ${f2(r.clusterSol)} SOL | ~${f2(r.openPct,0)}% supply | ${fmtK(r.entryMcap)} → ${fmtK(r.openMcap)}
+- First dev sell: ${fmtK(r.firstMcap)} (${f2(r.firstMult,1)}x), ~${f2(r.firstPct,0)}% of bag | ${f2(r.outClean,0)}% out by ${fmtK(S.settings.cleanMcap)}
+- Initial recovered: ${pct(r.recoveredRate)} of launches
+- Daily avg: dev ${sg(r.devDay)} SOL, cluster ${sg(r.clDay)} SOL | est. ${sg(r.perLaunch)} SOL/launch
+- Runner rate: ${pct(r.runnerRate)}
+
+Notes: ${d.notes||'-'}
+Lessons: ${d.lessons||'-'}`;
+}
+
+let charts=[];
+function killCharts(){charts.forEach(c=>c.destroy());charts=[]}
+function nav(){
+  const h=location.hash||'#/';
+  const t=[['#/','Devs'],['#/compare','Compare'],['#/backup','Backup']];
+  document.getElementById('tabs').innerHTML=t.map(([k,v])=>`<a class="tab ${(h===k||(k==='#/'&&h.startsWith('#/dev/')))?'on':''}" href="${k}">${v}</a>`).join('');
+}
+function render(){
+  killCharts();nav();
+  const h=location.hash||'#/';const app=document.getElementById('app');
+  if(h.startsWith('#/dev/')){const d=getDev(h.slice(6));if(!d){location.hash='#/';return}app.innerHTML=devView(d);drawCharts(d);return}
+  if(h==='#/compare'){app.innerHTML=compareView();return}
+  if(h==='#/backup'){app.innerHTML=backupView();return}
+  app.innerHTML=homeView();
+}
+window.addEventListener('hashchange',render);
+
+function homeView(){
+  const cards=S.devs.map(d=>{const r=stats(d);return `<a class="card devcard" href="#/dev/${d.id}">
+    <div class="row between"><h2 style="margin:0">${esc(d.name)}</h2><span class="muted" style="font-size:12px">${esc(d.wallet)}</span></div>
+    <div class="grid g4" style="margin-top:12px">
+      <div class="stat"><div class="k">Dev buy</div><div class="v">${f2(r.devBuy)}</div><div class="s">SOL median</div></div>
+      <div class="stat"><div class="k">Opening</div><div class="v">${f2(r.openPct,0)}%</div><div class="s">supply, ${f2(r.openSol)} SOL</div></div>
+      <div class="stat"><div class="k">First sell</div><div class="v">${isNum(r.firstMult)?f2(r.firstMult,1)+'x':'—'}</div><div class="s">${fmtK(r.firstMcap)}</div></div>
+      <div class="stat"><div class="k">Per launch</div><div class="v ${cls(r.perLaunch)}">${sg(r.perLaunch)}</div><div class="s">SOL est.</div></div>
+    </div><div class="hint">${r.n} launches · ${r.dayN} PnL days</div></a>`}).join('');
+  return `<div class="row between" style="margin-bottom:14px"><span class="muted">${S.devs.length} dev${S.devs.length===1?'':'s'} tracked</span><button class="btn pri" onclick="editDev()">+ Add dev</button></div>
+  ${cards||'<div class="card muted">No devs yet.</div>'}
+  <div class="card"><h2>Thresholds</h2><div class="fields">
+    <div><label>Runner = ATH at or above ($)</label><input type="number" value="${S.settings.runnerMcap}" onchange="S.settings.runnerMcap=num(this.value)||100000;save()"></div>
+    <div><label>"Clean dev supply" by mcap ($)</label><input type="number" value="${S.settings.cleanMcap}" onchange="S.settings.cleanMcap=num(this.value)||10000;save()"></div>
+  </div></div>`;
+}
+
+function devView(d){
+  const r=stats(d);
+  const launches=(d.launches||[]).slice().sort(byDate).reverse();
+  const days=(d.days||[]).slice().sort(byDate);
+  const maxH=Math.max(1,...r.hours);
+  return `<div class="row between" style="margin-bottom:14px">
+    <div><a href="#/" class="muted" style="font-size:13px;text-decoration:none">← All devs</a><h1 style="margin-top:4px">${esc(d.name)}</h1><span class="muted" style="font-size:13px">${esc(d.wallet)} · ~${esc(d.launchesPerDay??'?')} launches/day</span></div>
+    <div class="row"><button class="btn" onclick="editDev('${d.id}')">Edit</button><button class="btn pri" onclick="copyBrain('${d.id}')">Copy for Brain</button></div>
+  </div>
+  <div class="card"><h2>Playbook</h2><div class="play">${playbook(d,r)}</div>${regime(r)}</div>
+
+  <div class="card"><h3>Opening</h3><div class="grid g4">
+    <div class="stat"><div class="k">Dev buy</div><div class="v">${f2(r.devBuy)}</div><div class="s">SOL median</div></div>
+    <div class="stat"><div class="k">Cluster</div><div class="v">${f2(r.clusterSol)}</div><div class="s">SOL · ${f2(r.clusterCount,0)} wallets</div></div>
+    <div class="stat"><div class="k">Total opening</div><div class="v">${f2(r.openSol)}</div><div class="s">SOL · ${pct(r.openPct)} supply</div></div>
+    <div class="stat"><div class="k">Mcap after opening</div><div class="v">${fmtK(r.openMcap)}</div><div class="s">from ${fmtK(r.entryMcap)}</div></div>
+  </div>
+  <h3 style="margin-top:16px">Selling (dev wallet)</h3><div class="grid g4">
+    <div class="stat"><div class="k">First sell</div><div class="v">${fmtK(r.firstMcap)}</div><div class="s">${isNum(r.firstMult)?f2(r.firstMult,1)+'x from entry':'—'}</div></div>
+    <div class="stat"><div class="k">First sell size</div><div class="v">${pct(r.firstPct)}</div><div class="s">of dev bag</div></div>
+    <div class="stat"><div class="k">Out by ${fmtK(S.settings.cleanMcap)}</div><div class="v">${pct(r.outClean)}</div><div class="s">of dev bag</div></div>
+    <div class="stat"><div class="k">Initial recovered</div><div class="v">${pct(r.recoveredRate)}</div><div class="s">of ${r.sellSample} launches w/ sells</div></div>
+  </div>
+  <h3 style="margin-top:16px">Results</h3><div class="grid g4">
+    <div class="stat"><div class="k">Dev / day</div><div class="v ${cls(r.devDay)}">${sg(r.devDay,1)}</div><div class="s">SOL · green ${pct(r.devGreen)}</div></div>
+    <div class="stat"><div class="k">Cluster / day</div><div class="v ${cls(r.clDay)}">${sg(r.clDay,1)}</div><div class="s">SOL · green ${pct(r.clGreen)}</div></div>
+    <div class="stat"><div class="k">Per launch</div><div class="v ${cls(r.perLaunch)}">${sg(r.perLaunch)}</div><div class="s">SOL est.</div></div>
+    <div class="stat"><div class="k">Runner rate</div><div class="v">${pct(r.runnerRate)}</div><div class="s">${r.athSample} launches w/ ATH</div></div>
+  </div></div>
+
+  <div class="card"><h2>Sell ladder</h2><div class="hint" style="margin:-6px 0 10px">Each line is one launch: how much of the dev bag is sold as mcap rises. Dashed line = clean-supply mark.</div><div class="chartbox"><canvas id="ladder"></canvas></div></div>
+
+  <div class="card"><div class="row between"><h2>Daily PnL (SOL)</h2><span class="muted" style="font-size:12px">Dev ${sg(r.devTot,1)} · Cluster ${sg(r.clTot,1)} (excl. flagged)</span></div>
+    <div class="chartbox"><canvas id="daily"></canvas></div>
+    <div class="scroll" style="margin-top:12px"><table class="tbl"><tr><th>Date</th><th>Dev</th><th>Cluster</th><th>Total</th><th>Exclude</th><th>Note</th><th></th></tr>
+    ${days.map(x=>`<tr><td>${esc(x.date)}</td><td class="${cls(x.dev)}">${sg(x.dev)}</td><td class="${cls(x.cluster)}">${sg(x.cluster)}</td><td class="${cls((x.dev||0)+(x.cluster||0))}">${sg((x.dev||0)+(x.cluster||0))}</td>
+      <td><input type="checkbox" style="width:auto" ${x.exclude?'checked':''} onchange="setDay('${d.id}','${x.id}','exclude',this.checked)"></td><td class="muted">${esc(x.note)}</td>
+      <td><button class="btn sm del" onclick="delDay('${d.id}','${x.id}')">✕</button></td></tr>`).join('')}
+    </table></div>
+    <div class="fields" style="margin-top:12px;grid-template-columns:repeat(5,1fr)">
+      <div><label>Date</label><input type="date" id="nd-date"></div>
+      <div><label>Dev PnL</label><input type="number" step="any" id="nd-dev"></div>
+      <div><label>Cluster PnL</label><input type="number" step="any" id="nd-cl"></div>
+      <div><label>Note</label><input id="nd-note"></div>
+      <div><label>&nbsp;</label><button class="btn pri" style="width:100%" onclick="addDay('${d.id}')">Add / update day</button></div>
+    </div></div>
+
+  <div class="card"><div class="row between"><h2>Launch log</h2><button class="btn pri" onclick="editLaunch('${d.id}')">+ Log launch</button></div>
+    <div class="scroll"><table class="tbl"><tr><th>Date</th><th>Coin</th><th>Dev buy</th><th>Cluster</th><th>Supply</th><th>Open mcap</th><th>1st sell</th><th>Sold ≤ clean</th><th>ATH</th><th>Dev PnL</th><th></th></tr>
+    ${launches.map(l=>{const s0=l.sells&&l.sells[0];const oc=sum((l.sells||[]).filter(s=>isNum(s.mcap)&&s.mcap<=S.settings.cleanMcap).map(s=>s.pct));
+      return `<tr><td>${esc(l.date)} ${esc(l.time)}</td><td>${esc(l.name)||'<span class="muted">—</span>'}</td><td>${f2(l.devBuy)}</td><td>${isNum(l.clusterSol)?f2(l.clusterSol)+' <span class="muted">('+f2(l.clusterCount,0)+')</span>':'—'}</td>
+      <td>${isNum(l.devPct)?pct((l.devPct||0)+(l.clusterPct||0),1):'—'}</td><td>${fmtK(l.openMcap)}</td>
+      <td>${s0?fmtK(s0.mcap)+(isNum(l.devEntryMcap)&&isNum(s0.mcap)?' <span class="muted">'+f2(s0.mcap/l.devEntryMcap,1)+'x</span>':''):'<span class="muted">—</span>'}</td>
+      <td>${l.sells&&l.sells.length?pct(oc):'—'}</td><td>${fmtK(l.ath)}${l.migrated?' <span class="gold">✓</span>':''}</td><td class="${cls(l.devPnl)}">${sg(l.devPnl)}</td>
+      <td><button class="btn sm" onclick="editLaunch('${d.id}','${l.id}')">Edit</button></td></tr>`}).join('')||'<tr><td colspan="11" class="muted">No launches yet.</td></tr>'}
+    </table></div></div>
+
+  <div class="card"><h2>Launch hours</h2>
+    ${r.hours.some(x=>x)?`<div class="heat">${r.hours.map((c,i)=>`<div title="${i}:00 · ${c} launch${c===1?'':'es'}" style="opacity:${c?0.15+0.85*c/maxH:0.06}"></div>`).join('')}</div><div class="heatl">${r.hours.map((_,i)=>`<span>${i%3===0?i:''}</span>`).join('')}</div>`:'<div class="muted">Add launch times (your local time) to see when he\'s active.</div>'}
+  </div>
+
+  <div class="card"><h2>Known wallets</h2>
+    <div class="scroll"><table class="tbl"><tr><th>Wallet</th><th>Role</th><th>Label</th><th>Note</th><th></th></tr>
+    ${(d.wallets||[]).map(w=>`<tr><td>${esc(w.addr)}</td><td><span class="pill ${esc(w.role)}">${esc(w.role)}</span></td><td>${esc(w.label)}</td><td class="muted">${esc(w.note)}</td><td><button class="btn sm del" onclick="delWallet('${d.id}','${w.id}')">✕</button></td></tr>`).join('')}
+    </table></div>
+    <div class="fields" style="margin-top:12px;grid-template-columns:2fr 1fr 1fr 2fr 1fr">
+      <div><label>Address</label><input id="nw-addr"></div>
+      <div><label>Role</label><select id="nw-role"><option value="dev">dev</option><option value="cluster">cluster</option><option value="follower">follower</option></select></div>
+      <div><label>Label</label><input id="nw-label"></div>
+      <div><label>Note</label><input id="nw-note"></div>
+      <div><label>&nbsp;</label><button class="btn pri" style="width:100%" onclick="addWallet('${d.id}')">Add</button></div>
+    </div></div>
+
+  <div class="card"><div class="grid" style="grid-template-columns:1fr 1fr">
+    <div><label>Notes</label><textarea oninput="getDev('${d.id}').notes=this.value;save()">${esc(d.notes)}</textarea></div>
+    <div><label>Lessons for my own devving</label><textarea oninput="getDev('${d.id}').lessons=this.value;save()">${esc(d.lessons)}</textarea></div>
+  </div></div>`;
+}
+
+function drawCharts(d){
+  if(!window.Chart)return;
+  Chart.defaults.color='#87a1aa';Chart.defaults.font.family='Inter';Chart.defaults.borderColor='#1f3b48';
+  const clean=S.settings.cleanMcap;
+  const ls=(d.launches||[]).filter(l=>l.sells&&l.sells.length&&isNum(l.devEntryMcap));
+  const pal=['#2bb0c8','#e8c35a','#3dd68c','#c88df0','#f0906a','#6aa8f0','#f06aa8'];
+  const ds=ls.map((l,i)=>{let c=0;const pts=[{x:l.devEntryMcap,y:0}];l.sells.filter(s=>isNum(s.mcap)).forEach(s=>{c+=s.pct||0;pts.push({x:s.mcap,y:Math.min(c,100)})});
+    return {label:(l.name||l.date),data:pts,borderColor:pal[i%pal.length],backgroundColor:pal[i%pal.length],tension:0,stepped:'before',pointRadius:3}});
+  const xs=ls.flatMap(l=>[l.devEntryMcap,...l.sells.map(s=>s.mcap)]).filter(isNum);
+  ds.push({label:'Clean mark',data:[{x:clean,y:0},{x:clean,y:100}],borderColor:'#87a1aa',borderDash:[5,5],pointRadius:0});
+  const el=document.getElementById('ladder');
+  if(el)charts.push(new Chart(el,{type:'line',data:{datasets:ds},options:{maintainAspectRatio:false,parsing:false,
+    scales:{x:{type:'logarithmic',min:xs.length?Math.min(...xs,clean)*0.85:2000,max:xs.length?Math.max(...xs,clean)*1.2:20000,title:{display:true,text:'Market cap'},ticks:{callback:v=>fmtK(v)}},
+      y:{min:0,max:100,title:{display:true,text:'% of dev bag sold'}}},
+    plugins:{legend:{labels:{boxWidth:10}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtK(c.parsed.x)} → ${c.parsed.y}% sold`}}}}}));
+  const days=(d.days||[]).slice().sort(byDate);
+  const el2=document.getElementById('daily');
+  if(el2)charts.push(new Chart(el2,{type:'bar',data:{labels:days.map(x=>x.date.slice(5)),datasets:[
+    {label:'Dev',data:days.map(x=>x.dev),backgroundColor:days.map(x=>x.exclude?'#33474f':'#2bb0c8')},
+    {label:'Cluster',data:days.map(x=>x.cluster),backgroundColor:days.map(x=>x.exclude?'#33474f':'#e8c35a')}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10}},tooltip:{callbacks:{afterLabel:c=>days[c.dataIndex].exclude?'(excluded)':''}}},
+      scales:{y:{title:{display:true,text:'SOL'}}}}}));
+}
+
+function modal(html){const m=document.createElement('div');m.className='modalbg';m.id='modal';m.innerHTML=`<div class="modal">${html}</div>`;m.addEventListener('click',e=>{if(e.target===m)closeModal()});document.body.appendChild(m)}
+function closeModal(){const m=document.getElementById('modal');if(m)m.remove()}
+const val=id=>document.getElementById(id).value;
+
+function editDev(id){
+  const d=id?getDev(id):{name:'',wallet:'',launchesPerDay:''};
+  modal(`<h2>${id?'Edit dev':'Add dev'}</h2><div class="fields">
+    <div><label>Name</label><input id="dv-name" value="${esc(d.name)}"></div>
+    <div><label>Dev wallet</label><input id="dv-wallet" value="${esc(d.wallet)}"></div>
+    <div><label>Est. launches / day</label><input type="number" step="any" id="dv-lpd" value="${esc(d.launchesPerDay??'')}"></div>
+  </div><div class="row between" style="margin-top:16px">${id?`<button class="btn del" onclick="delDev('${id}')">Delete dev</button>`:'<span></span>'}
+  <div class="row"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn pri" onclick="saveDev('${id||''}')">Save</button></div></div>`);
+}
+function saveDev(id){
+  const name=val('dv-name').trim();if(!name){toast('Name needed');return}
+  if(id){const d=getDev(id);d.name=name;d.wallet=val('dv-wallet').trim();d.launchesPerDay=num(val('dv-lpd'))}
+  else{id=uid();S.devs.push({id,name,wallet:val('dv-wallet').trim(),launchesPerDay:num(val('dv-lpd')),notes:'',lessons:'',launches:[],days:[],wallets:[]})}
+  save();closeModal();location.hash='#/dev/'+id;render();
+}
+function delDev(id){if(!confirm('Delete this dev and all their data?'))return;S.devs=S.devs.filter(d=>d.id!==id);save();closeModal();location.hash='#/';render()}
+
+function sellRow(s={}){return `<div class="fields sellrow" style="grid-template-columns:1fr 1fr 1fr auto;margin-bottom:8px">
+  <div><input type="number" step="any" placeholder="Mcap at sell ($)" class="s-mcap" value="${esc(s.mcap??'')}"></div>
+  <div><input type="number" step="any" placeholder="% of dev bag" class="s-pct" value="${esc(s.pct??'')}"></div>
+  <div><input type="number" step="any" placeholder="SOL received" class="s-sol" value="${esc(s.sol??'')}"></div>
+  <div><button class="btn sm del" onclick="this.closest('.sellrow').remove()">✕</button></div></div>`}
+function editLaunch(did,lid){
+  const d=getDev(did);const l=lid?d.launches.find(x=>x.id===lid):{date:new Date().toISOString().slice(0,10),time:'',sells:[]};
+  const F=(id,lab,v,type='number')=>`<div><label>${lab}</label><input id="lf-${id}" type="${type}" ${type==='number'?'step="any"':''} value="${esc(v??'')}"></div>`;
+  modal(`<h2>${lid?'Edit launch':'Log launch'}</h2>
+  <h3>Basics</h3><div class="fields">${F('date','Date',l.date,'date')}${F('time','Time (local)',l.time,'time')}${F('name','Coin (optional)',l.name,'text')}</div>
+  <h3 style="margin-top:14px">Opening</h3><div class="fields">
+    ${F('devBuy','Dev buy (SOL)',l.devBuy)}${F('devPct','Dev % of supply',l.devPct)}${F('entry','Mcap at dev buy ($)',l.devEntryMcap)}
+    ${F('cc','Cluster wallets (count)',l.clusterCount)}${F('cs','Cluster total SOL',l.clusterSol)}${F('cp','Cluster total % supply',l.clusterPct)}
+    ${F('open','Mcap after opening ($)',l.openMcap)}</div>
+  <h3 style="margin-top:14px">Dev wallet sells (in order)</h3><div id="sells">${(l.sells||[]).map(sellRow).join('')}</div>
+  <button class="btn sm" onclick="document.getElementById('sells').insertAdjacentHTML('beforeend',sellRow())">+ Add sell</button>
+  <h3 style="margin-top:14px">Outcome</h3><div class="fields">
+    ${F('cexit','Cluster exit mcap ($, approx)',l.clusterExitMcap)}${F('ath','ATH mcap ($)',l.ath)}
+    <div><label>Migrated</label><select id="lf-mig"><option value="0">No</option><option value="1" ${l.migrated?'selected':''}>Yes</option></select></div>
+    ${F('dpnl','Dev PnL (SOL)',l.devPnl)}${F('cpnl','Cluster PnL (SOL)',l.clusterPnl)}</div>
+  <div style="margin-top:10px"><label>Notes</label><textarea id="lf-notes">${esc(l.notes)}</textarea></div>
+  <div class="row between" style="margin-top:16px">${lid?`<button class="btn del" onclick="delLaunch('${did}','${lid}')">Delete</button>`:'<span></span>'}
+  <div class="row"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn pri" onclick="saveLaunch('${did}','${lid||''}')">Save</button></div></div>`);
+}
+function saveLaunch(did,lid){
+  const d=getDev(did);
+  const sells=[...document.querySelectorAll('#sells .sellrow')].map(r=>({mcap:num(r.querySelector('.s-mcap').value),pct:num(r.querySelector('.s-pct').value),sol:num(r.querySelector('.s-sol').value)})).filter(s=>isNum(s.mcap)||isNum(s.pct)||isNum(s.sol));
+  const o={date:val('lf-date'),time:val('lf-time'),name:val('lf-name').trim(),devBuy:num(val('lf-devBuy')),devPct:num(val('lf-devPct')),devEntryMcap:num(val('lf-entry')),
+    clusterCount:num(val('lf-cc')),clusterSol:num(val('lf-cs')),clusterPct:num(val('lf-cp')),openMcap:num(val('lf-open')),sells,
+    clusterExitMcap:num(val('lf-cexit')),ath:num(val('lf-ath')),migrated:val('lf-mig')==='1',devPnl:num(val('lf-dpnl')),clusterPnl:num(val('lf-cpnl')),notes:val('lf-notes')};
+  if(!o.date){toast('Date needed');return}
+  if(lid)Object.assign(d.launches.find(x=>x.id===lid),o);else d.launches.push({id:uid(),...o});
+  save();closeModal();render();
+}
+function delLaunch(did,lid){if(!confirm('Delete this launch?'))return;const d=getDev(did);d.launches=d.launches.filter(x=>x.id!==lid);save();closeModal();render()}
+
+function addDay(did){
+  const d=getDev(did);const date=val('nd-date');if(!date){toast('Pick a date');return}
+  const ex=d.days.find(x=>x.date===date);const o={date,dev:num(val('nd-dev')),cluster:num(val('nd-cl')),note:val('nd-note')};
+  if(ex)Object.assign(ex,o);else d.days.push({id:uid(),exclude:false,...o});save();render();
+}
+function setDay(did,id,k,v){const x=getDev(did).days.find(y=>y.id===id);x[k]=v;save();render()}
+function delDay(did,id){const d=getDev(did);d.days=d.days.filter(x=>x.id!==id);save();render()}
+function addWallet(did){const a=val('nw-addr').trim();if(!a){toast('Address needed');return}getDev(did).wallets.push({id:uid(),addr:a,role:val('nw-role'),label:val('nw-label').trim(),note:val('nw-note').trim()});save();render()}
+function delWallet(did,id){const d=getDev(did);d.wallets=d.wallets.filter(w=>w.id!==id);save();render()}
+function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>fallback(t))}else fallback(t)}
+function fallback(t){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Copied')}catch(e){toast('Copy failed')}a.remove()}
+function copyBrain(did){const d=getDev(did);copyText(brainText(d,stats(d)))}
+
+function compareView(){
+  if(!S.devs.length)return '<div class="card muted">Add devs first.</div>';
+  const rs=S.devs.map(d=>[d,stats(d)]);
+  const rows=[['Launches logged',r=>r.n],['Dev buy (SOL)',r=>f2(r.devBuy)],['Cluster wallets',r=>f2(r.clusterCount,0)],['Cluster SOL',r=>f2(r.clusterSol)],['Opening % supply',r=>pct(r.openPct)],
+    ['Mcap after opening',r=>fmtK(r.openMcap)],['First sell mcap',r=>fmtK(r.firstMcap)],['First sell multiple',r=>isNum(r.firstMult)?f2(r.firstMult,1)+'x':'—'],['First sell size',r=>pct(r.firstPct)],
+    ['Out by clean mark',r=>pct(r.outClean)],['Initial recovered',r=>pct(r.recoveredRate)],['Dev / day',r=>`<span class="${cls(r.devDay)}">${sg(r.devDay,1)}</span>`],
+    ['Cluster / day',r=>`<span class="${cls(r.clDay)}">${sg(r.clDay,1)}</span>`],['SOL per launch',r=>`<span class="${cls(r.perLaunch)}">${sg(r.perLaunch)}</span>`],['Runner rate',r=>pct(r.runnerRate)]];
+  return `<div class="card"><h2>Compare devs</h2><div class="scroll"><table class="tbl"><tr><th></th>${rs.map(([d])=>`<th><a href="#/dev/${d.id}">${esc(d.name)}</a></th>`).join('')}</tr>
+  ${rows.map(([k,fn])=>`<tr><td class="muted">${k}</td>${rs.map(([,r])=>`<td>${fn(r)}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
+}
+function backupView(){
+  return `<div class="card"><h2>Backup</h2><div class="hint" style="margin:-6px 0 12px">Everything is saved in this browser. Copy a backup now and then, or use one to move to another device.</div>
+  <button class="btn pri" onclick="copyText(JSON.stringify(S))">Copy backup</button>
+  <div style="margin-top:16px"><label>Paste a backup to restore it</label><textarea id="restore"></textarea></div>
+  <div class="row" style="margin-top:10px"><button class="btn" onclick="restore()">Restore backup</button><button class="btn del" onclick="resetAll()">Reset to starter data</button></div></div>`;
+}
+function restore(){try{const o=JSON.parse(val('restore'));if(!o||!Array.isArray(o.devs))throw 0;o.settings=o.settings||{runnerMcap:100000,cleanMcap:10000};S=o;save();toast('Restored');location.hash='#/';render()}catch(e){toast('That backup didn\'t read')}}
+function resetAll(){if(!confirm('Replace everything with the starter data?'))return;S=seed();save();location.hash='#/';render()}
+
+render();
+</script>
+</body>
+</html>
