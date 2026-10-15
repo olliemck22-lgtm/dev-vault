@@ -2,262 +2,170 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dev Vault</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dev Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#fff;--panel:#f7f7f7;--line:#e5e5e5;--text:#151515;--muted:#777;--field:#fff;--btn:#151515;--btn-text:#fff;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#121212;--panel:#181818;--line:#2b2b2b;--text:#ececec;--muted:#8d8d8d;--field:#1b1b1b;--btn:#ececec;--btn-text:#121212;color-scheme:dark}}
+:root{--bg:#0a171e;--card:#0f222b;--card2:#132b36;--line:#1f3b48;--text:#e4f0f4;--muted:#87a1aa;--accent:#2bb0c8;--green:#3dd68c;--red:#f0606a;--gold:#e8c35a}
 *{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-button,input,textarea,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--text);outline-offset:1px}
-header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);height:56px}
-header h1{font-size:16px;font-weight:600;margin:0;margin-right:auto}
-#saved{color:var(--muted);font-size:12px}
-.btn{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:6px 11px;cursor:pointer;white-space:nowrap}
-.btn:hover{background:var(--panel)}
-.btn.dark{background:var(--btn);color:var(--btn-text);border-color:var(--btn)}
-.btn.red{color:#d33}
-.btn:disabled{opacity:.4;cursor:default}
-.app{display:grid;grid-template-columns:290px 1fr;height:calc(100% - 56px)}
-.side{border-right:1px solid var(--line);background:var(--panel);overflow-y:auto}
-.side select{width:100%;border:none;border-bottom:1px solid var(--line);background:var(--panel);padding:10px 14px}
-.item{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
-.item:hover,.item.on{background:var(--bg)}
-.thumb{width:38px;height:38px;border-radius:6px;background:var(--line);object-fit:cover;flex:none}
-.item .t{font-weight:600}
-.item .s{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
-.empty{color:var(--muted);padding:20px 14px;margin:0}
-main{overflow-y:auto;padding:24px 20px 60px}
-.form{max-width:620px}
-h2{font-size:13px;font-weight:600;color:var(--muted);margin:28px 0 10px;padding-top:16px;border-top:1px solid var(--line)}
-.f{margin-bottom:12px}
-.f label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
-.row{display:flex;gap:6px}
-input,textarea,select.in{width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
-input:focus,textarea:focus,select.in:focus{outline:none;border-color:var(--text)}
-textarea{resize:vertical;min-height:80px}
-.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.img{display:flex;gap:14px;align-items:center;margin-bottom:16px}
-.img .thumb{width:84px;height:84px;border-radius:8px}
-.img .row{flex-wrap:wrap}
-.tw{border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:10px}
-.tw textarea{border:none;padding:2px;min-height:70px;background:transparent}
-.tw .row{align-items:center;margin-top:6px}
-.count{font-size:12px;color:var(--muted);margin-right:auto}
-.count.over{color:#d33}
-.hint{font-size:12px;color:var(--muted);margin:0 0 10px}
-.back{display:none}
-@media (max-width:720px){
-  .app{grid-template-columns:1fr}
-  main{display:none}
-  body.editing .side{display:none}
-  body.editing main{display:block}
-  body.editing .back{display:inline-block}
-  .two{grid-template-columns:1fr}
-  #exportBtn,#importBtn{display:none}
-}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,sans-serif}
+.wrap{max-width:1060px;margin:0 auto;padding:22px 16px 90px}
+h1,h2,h3,.num,.tab{font-family:Unbounded,Inter,sans-serif}
+h1{font-size:22px;margin:0}
+h2{font-size:15px;margin:0 0 12px;letter-spacing:.2px}
+h3{font-size:12px;margin:0 0 8px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.6px}
+a{color:var(--accent)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{font-size:12px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);color:var(--muted);text-decoration:none}
+.tab.on{background:var(--accent);color:#06222a;border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+.grid{display:grid;gap:12px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:760px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card2);border-radius:12px;padding:12px 14px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-family:Unbounded,Inter,sans-serif;font-size:18px;margin-top:2px}
+.stat .s{font-size:12px;color:var(--muted)}
+.pos{color:var(--green)}.neg{color:var(--red)}.gold{color:var(--gold)}.muted{color:var(--muted)}
+.btn{font:600 13px Inter,sans-serif;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#06222a}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.del{color:var(--red);border-color:#5a2a30}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+input,select,textarea{font:14px Inter,sans-serif;background:#0a1a21;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
+textarea{min-height:90px;resize:vertical}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:760px){.fields{grid-template-columns:1fr 1fr}}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;color:var(--muted);font-weight:500;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:7px 8px;border-bottom:1px solid #16303b;white-space:nowrap}
+.scroll{overflow-x:auto}
+.pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.pill.dev{color:var(--gold);border-color:#6b5a26}.pill.cluster{color:var(--accent);border-color:#1f5c69}.pill.follower{color:var(--muted)}
+.play{font-size:15px;line-height:1.65}
+.devcard{display:block;text-decoration:none;color:inherit}
+.devcard:hover{border-color:var(--accent)}
+.heat{display:grid;grid-template-columns:repeat(24,1fr);gap:3px}
+.heat div{aspect-ratio:1;border-radius:4px;background:var(--accent);position:relative}
+.heatl{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;font-size:10px;color:var(--muted);text-align:center;margin-top:4px}
+.callout{border-left:3px solid var(--gold);padding:8px 12px;background:var(--card2);border-radius:8px;font-size:14px;margin-top:12px}
+.modalbg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:20}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;width:100%;max-width:760px}
+.chartbox{position:relative;height:260px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#06222a;padding:9px 16px;border-radius:999px;font-weight:600;font-size:13px;z-index:30}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body>
-<header>
-  <button class="btn back" id="backBtn">Back</button>
-  <h1>Dev Vault</h1>
-  <span id="saved"></span>
-  <button class="btn" id="exportBtn">Export</button>
-  <button class="btn" id="importBtn">Import</button>
-  <button class="btn dark" id="newBtn">New coin</button>
-</header>
-<div class="app">
-  <aside class="side">
-    <select id="filter" aria-label="Filter by status"></select>
-    <div id="items"></div>
-  </aside>
-  <main id="editor"></main>
+<div class="wrap">
+  <div class="top">
+    <h1>Dev Lab</h1>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+  <div id="app"></div>
 </div>
-<input type="file" id="imgIn" accept="image/*" hidden>
-<input type="file" id="importIn" accept="application/json" hidden>
-
 <script>
-const STATUSES={idea:['Idea','#9a9a9a'],prepping:['Prepping','#d58a00'],ready:['Ready','#2f6fdb'],launched:['Launched','#1f9d55'],shelved:['Shelved','#d33']};
-let coins=[],cur=null,filter='all',timer=null;
-const $=s=>document.querySelector(s);
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const T=c=>(c.ticker||'').toUpperCase();
-const fill=(t,c)=>String(t||'').split('{TICKER}').join(T(c)||'TICKER').split('{NAME}').join(c.name||'').split('{CA}').join(c.ca||'{CA}');
-const tweetLen=(t,c)=>[...fill(t,{...c,ca:c.ca||'x'.repeat(44)})].length;
-const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));
+const KEY='devlab.v1';
+const uid=()=>Math.random().toString(36).slice(2,10);
+const isNum=n=>typeof n==='number'&&isFinite(n);
+const num=v=>(v===''||v==null)?null:(isFinite(Number(v))?Number(v):null);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const med=a=>{a=a.filter(isNum).slice().sort((x,y)=>x-y);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2};
+const avg=a=>{a=a.filter(isNum);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null};
+const sum=a=>a.filter(isNum).reduce((x,y)=>x+y,0);
+const f2=(n,d=2)=>isNum(n)?n.toFixed(d):'—';
+const sg=(n,d=2)=>isNum(n)?(n>=0?'+':'')+n.toFixed(d):'—';
+const cls=n=>isNum(n)?(n>=0?'pos':'neg'):'';
+const pct=(n,d=0)=>isNum(n)?n.toFixed(d)+'%':'—';
+function fmtK(n){if(!isNum(n))return '—';const a=Math.abs(n);if(a>=1e6)return '$'+(n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';if(a>=1e3)return '$'+(n/1e3).toFixed(1).replace(/\.0$/,'')+'K';return '$'+Math.round(n)}
+const byDate=(a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''));
 
-/* storage (IndexedDB) */
-let dbp=null;
-function idb(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('dev-vault',1);r.onupgradeneeded=()=>r.result.createObjectStore('coins',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
-async function tx(mode,fn){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction('coins',mode);const req=fn(t.objectStore('coins'));t.oncomplete=()=>res(req&&req.result);t.onerror=()=>rej(t.error);});}
-const getAll=()=>tx('readonly',s=>s.getAll());
-const put=c=>tx('readwrite',s=>s.put(c));
-const del=id=>tx('readwrite',s=>s.delete(id));
-
-function blank(){return{id:uid(),name:'',ticker:'',description:'',image:'',status:'idea',devBuy:'',ca:'',x:'',telegram:'',website:'',notes:'',tweets:[{text:'$'+'{TICKER}\n\n{CA}'}],created:Date.now()};}
-
-/* list */
-function renderFilter(){
-  const opts=[['all','All coins',coins.length],...Object.entries(STATUSES).map(([k,[l]])=>[k,l,coins.filter(c=>c.status===k).length])];
-  $('#filter').innerHTML=opts.map(([k,l,n])=>`<option value="${k}"${k===filter?' selected':''}>${l} (${n})</option>`).join('');
+function seed(){
+  const dev=[69.65,47.49,107.86,26.32,83.04,84.23,1050,42.64,108.22,103.58,17.58,42.70,38.13,49.37,56.21];
+  const cl=[129.22,159.05,57.67,16.18,56.03,83.80,43.16,31.11,-27.00,-72.88,12.87,-46.96,-1.76,-59.11,-51.64];
+  const days=dev.map((v,i)=>({id:uid(),date:'2026-10-'+String(i+1).padStart(2,'0'),dev:v,cluster:cl[i],exclude:i===6,note:i===6?'Big non-dev sell, excluded':''}));
+  const L=(date,name,devBuy,devPct,entry,cc,cs,cp,open,sells,notes)=>({id:uid(),date,time:'',name,devBuy,devPct,devEntryMcap:entry,clusterCount:cc,clusterSol:cs,clusterPct:cp,openMcap:open,sells,clusterExitMcap:null,ath:null,migrated:false,devPnl:null,clusterPnl:null,notes});
+  const W=(addr,role,label,note)=>({id:uid(),addr,role,label,note});
+  return {settings:{runnerMcap:100000,cleanMcap:10000},devs:[{
+    id:uid(),name:'petal',wallet:'4HXb7…vEpU',launchesPerDay:30,
+    notes:'Launches ~1–2/hr while awake. Est. ~30 launches/day from ~950 coins traded in 30d.',
+    lessons:'Dev wallet is the real earner (93% win rate, green every day). Cluster is near coin-flip (~43–49% win rate) and turned red from Oct 9.',
+    launches:[
+      L('2026-10-14','Kimba',5.00,15.3,3480,5,8.90,18.6,6190,[],'Tipped snipers right after the cluster; one flipped within a few trades.'),
+      L('2026-10-14','Unnamed A',5.00,15.3,3530,5,8.90,18.6,6270,[{mcap:6720,pct:33,sol:3.15},{mcap:8150,pct:22,sol:2.55}],''),
+      L('2026-10-14','Unnamed B',5.00,15.3,3510,5,8.90,18.6,6180,[{mcap:7670,pct:50,sol:5.46}],''),
+      L('2026-10-15','Unnamed C',4.74,14.6,3290,3,3.52,8.5,4490,[],'Lighter opening: only 3 cluster wallets.'),
+      L('2026-10-15','Unnamed D',4.88,14.7,3490,5,8.68,18.1,6000,[{mcap:6220,pct:20,sol:1.74}],'')
+    ],
+    days,
+    wallets:[
+      W('4HXb7…vEpU','dev','Dev wallet','93% win rate, ~966 coins / 30d'),
+      W('5upJw…MXQU','cluster','P-1','~49% win rate'),
+      W('AaDKP…Zzmq','cluster','P-2','~49% win rate'),
+      W('BnFJe…yLXr','cluster','P-3','~48% win rate'),
+      W('eGdck…zB33','cluster','P-4','~46% win rate'),
+      W('39pa7…moo2','cluster','P-5','~43% win rate'),
+      W('3yrJ…fjJ','follower','Sniper','3/5 launches, sells within minutes'),
+      W('D5mr…4VJ','follower','Paired bot','Always with DmRZ, same tip'),
+      W('DmRZ…hZt','follower','Paired bot','Always with D5mr'),
+      W('CVxU…ev8','follower','Paired bot','Tiny matching buys with HZDX'),
+      W('HZDX…z6f','follower','Paired bot','Tiny matching buys with CVxU'),
+      W('DRWP…3Gf','follower','Sniper','2/5 launches'),
+      W('D9Uz…bR3','follower','Sniper','2/5 launches')
+    ]
+  }]};
 }
-function renderList(){
-  renderFilter();
-  const list=coins.filter(c=>filter==='all'||c.status===filter).sort((a,b)=>b.created-a.created);
-  $('#items').innerHTML=list.length?list.map(c=>`<div class="item${cur&&cur.id===c.id?' on':''}" data-id="${esc(c.id)}">
-    ${c.image?`<img class="thumb" src="${esc(c.image)}" alt="">`:'<div class="thumb"></div>'}
-    <div style="min-width:0"><div class="t">${T(c)?'$'+esc(T(c)):'No ticker'}</div>
-    <div class="s"><span class="dot" style="background:${(STATUSES[c.status]||STATUSES.idea)[1]}"></span>${esc(c.name||'Untitled')}</div></div></div>`).join('')
-    :`<p class="empty">${coins.length?'No coins with this status.':'No coins yet. Click New coin.'}</p>`;
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return seed()}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Could not save in this browser')}}
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1800)}
+const getDev=id=>S.devs.find(d=>d.id===id);
+
+function stats(d){
+  const L=d.launches||[],st=S.settings;
+  const ws=L.filter(l=>l.sells&&l.sells.length);
+  const days=(d.days||[]).filter(x=>!x.exclude).slice().sort(byDate);
+  const r={n:L.length};
+  r.devBuy=med(L.map(l=>l.devBuy));
+  r.clusterCount=med(L.map(l=>l.clusterCount));
+  r.clusterSol=med(L.map(l=>l.clusterSol));
+  r.openSol=med(L.filter(l=>isNum(l.devBuy)).map(l=>l.devBuy+(l.clusterSol||0)));
+  r.openPct=med(L.filter(l=>isNum(l.devPct)).map(l=>l.devPct+(l.clusterPct||0)));
+  r.entryMcap=med(L.map(l=>l.devEntryMcap));
+  r.openMcap=med(L.map(l=>l.openMcap));
+  r.firstMcap=med(ws.map(l=>l.sells[0].mcap));
+  r.firstMult=med(ws.filter(l=>isNum(l.devEntryMcap)&&isNum(l.sells[0].mcap)).map(l=>l.sells[0].mcap/l.devEntryMcap));
+  r.firstPct=med(ws.map(l=>l.sells[0].pct));
+  r.outClean=med(ws.map(l=>sum(l.sells.filter(s=>isNum(s.mcap)&&s.mcap<=st.cleanMcap).map(s=>s.pct))));
+  const rec=ws.filter(l=>isNum(l.devBuy)&&l.devBuy>0).map(l=>sum(l.sells.map(s=>s.sol))/l.devBuy);
+  r.recovered=med(rec);r.recoveredRate=rec.length?rec.filter(x=>x>=1).length/rec.length*100:null;r.sellSample=ws.length;
+  r.clusterExit=med(L.map(l=>l.clusterExitMcap));
+  const aths=L.map(l=>l.ath).filter(isNum);
+  r.athSample=aths.length;r.runnerRate=aths.length?aths.filter(a=>a>=st.runnerMcap).length/aths.length*100:null;r.athMed=med(aths);
+  r.devPnlL=avg(L.map(l=>l.devPnl));r.clPnlL=avg(L.map(l=>l.clusterPnl));
+  r.dayN=days.length;
+  r.devDay=avg(days.map(x=>x.dev));r.clDay=avg(days.map(x=>x.cluster));
+  r.devTot=sum(days.map(x=>x.dev));r.clTot=sum(days.map(x=>x.cluster));
+  r.devGreen=days.length?days.filter(x=>x.dev>0).length/days.length*100:null;
+  r.clGreen=days.length?days.filter(x=>x.cluster>0).length/days.length*100:null;
+  const tot=days.map(x=>(x.dev||0)+(x.cluster||0));
+  r.perLaunch=(isNum(d.launchesPerDay)&&d.launchesPerDay>0&&days.length)?avg(tot)/d.launchesPerDay:null;
+  if(days.length>=6){const l3=days.slice(-3),p3=days.slice(-6,-3);r.l3cl=sum(l3.map(x=>x.cluster));r.p3cl=sum(p3.map(x=>x.cluster));r.l3dev=sum(l3.map(x=>x.dev));r.p3dev=sum(p3.map(x=>x.dev))}
+  let streak=0;for(let i=days.length-1;i>=0;i--){const c=days[i].cluster;if(!isNum(c))break;if(streak===0)streak=c>=0?1:-1;else if((c>=0)===(streak>0))streak+=streak>0?1:-1;else break}
+  r.clStreak=streak;
+  const hrs=Array(24).fill(0);L.forEach(l=>{if(l.time){const h=parseInt(l.time.split(':')[0],10);if(h>=0&&h<24)hrs[h]++}});r.hours=hrs;
+  return r;
 }
 
-/* editor */
-function field(k,label,o={}){
-  return `<div class="f"><label for="f_${k}">${label}</label><div class="row">
-    <input id="f_${k}" data-k="${k}" value="${esc(cur[k])}"${o.ph?` placeholder="${esc(o.ph)}"`:''}${o.type?` type="${o.type}"`:''}${o.mono?' class="mono"':''} spellcheck="false">
-    ${o.copy===false?'':`<button class="btn" type="button" data-copy="${k}">Copy</button>`}</div></div>`;
-}
-function tweetsHTML(){
-  return cur.tweets.map((t,i)=>{const n=tweetLen(t.text,cur);return `<div class="tw">
-    <textarea data-tw="${i}" aria-label="Tweet ${i+1}">${esc(t.text)}</textarea>
-    <div class="row"><span class="count${n>280?' over':''}" id="cnt${i}">${n}/280</span>
-    <button class="btn" type="button" data-copytw="${i}">Copy</button>
-    <button class="btn" type="button" data-post="${i}">Post on X</button>
-    <button class="btn red" type="button" data-rmtw="${i}">Remove</button></div></div>`;}).join('');
-}
-function renderEditor(){
-  if(!cur){$('#editor').innerHTML=`<p class="empty">${coins.length?'Pick a coin on the left.':'Click New coin to add your first one.'}</p>`;return;}
-  $('#editor').innerHTML=`<div class="form">
-    <div class="img">
-      ${cur.image?`<img class="thumb" src="${esc(cur.image)}" alt="">`:'<div class="thumb"></div>'}
-      <div class="row">
-        <button class="btn" type="button" id="upImg">${cur.image?'Replace image':'Upload image'}</button>
-        ${cur.image?`<button class="btn" type="button" id="dlImg">Download</button><button class="btn red" type="button" id="rmImg">Remove</button>`:''}
-      </div>
-    </div>
-    <div class="two">${field('name','Name',{ph:'Perception'})}${field('ticker','Ticker',{ph:'PERC',mono:true})}</div>
-    <div class="f"><label for="f_description">Description</label><textarea id="f_description" data-k="description" placeholder="Bio for the launchpad">${esc(cur.description)}</textarea>
-      <div class="row" style="margin-top:6px"><button class="btn" type="button" data-copy="description">Copy</button></div></div>
-    <div class="two">
-      <div class="f"><label for="f_status">Status</label><select class="in" id="f_status" data-k="status">${Object.entries(STATUSES).map(([k,[l]])=>`<option value="${k}"${cur.status===k?' selected':''}>${l}</option>`).join('')}</select></div>
-      ${field('devBuy','Dev buy (SOL)',{ph:'0.5',copy:false})}
-    </div>
-    ${field('ca','Contract address',{ph:'Paste after deploying',mono:true})}
-
-    <h2>Socials</h2>
-    ${field('x','X',{ph:'https://x.com/...'})}
-    ${field('telegram','Telegram',{ph:'https://t.me/...'})}
-    ${field('website','Website',{ph:'https://...'})}
-
-    <h2>Tweets</h2>
-    <p class="hint">Write {TICKER} and {CA} and they fill in when you copy or post.</p>
-    <div id="tweets">${tweetsHTML()}</div>
-    <button class="btn" type="button" id="addTw">Add tweet</button>
-
-    <h2>Notes</h2>
-    <div class="f"><textarea data-k="notes" aria-label="Notes" placeholder="Lore, timing, who to contact">${esc(cur.notes)}</textarea></div>
-
-    <h2>Danger</h2>
-    <button class="btn red" type="button" id="delCoin">Delete coin</button>
-  </div>`;
-}
-function select(id){
-  flush();
-  cur=coins.find(c=>c.id===id)||null;
-  document.body.classList.toggle('editing',!!cur);
-  renderList();renderEditor();$('#editor').scrollTop=0;
-}
-
-/* saving */
-let pending=null;
-function save(now){
-  if(!cur) return;
-  $('#saved').textContent='Saving…';
-  clearTimeout(timer);
-  const c=cur;
-  pending=()=>{pending=null;return put(JSON.parse(JSON.stringify(c))).then(()=>{$('#saved').textContent='Saved';renderList();}).catch(()=>{$('#saved').textContent='Save failed';});};
-  if(now) pending(); else timer=setTimeout(pending,400);
-}
-function flush(){if(pending){clearTimeout(timer);pending();}}
-function updateCounts(){cur.tweets.forEach((t,i)=>{const el=$('#cnt'+i);if(el){const n=tweetLen(t.text,cur);el.textContent=n+'/280';el.classList.toggle('over',n>280);}});}
-
-async function copy(text,btn){
-  try{await navigator.clipboard.writeText(text);}
-  catch{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
-  const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1000);
-}
-function download(name,url){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();}
-
-/* events */
-$('#newBtn').onclick=async()=>{const c=blank();coins.push(c);await put(c);select(c.id);$('#f_name').focus();};
-$('#backBtn').onclick=()=>{flush();cur=null;document.body.classList.remove('editing');renderList();renderEditor();};
-$('#filter').onchange=e=>{filter=e.target.value;renderList();};
-$('#items').onclick=e=>{const it=e.target.closest('.item');if(it)select(it.dataset.id);};
-
-$('#editor').addEventListener('input',e=>{
-  if(!cur) return;const t=e.target;
-  if(t.dataset.k){
-    let v=t.value;
-    if(t.dataset.k==='ticker'){v=v.replace(/[\s$]/g,'').toUpperCase();if(v!==t.value)t.value=v;}
-    if(t.dataset.k==='ca') v=v.trim();
-    cur[t.dataset.k]=v;updateCounts();save();
-  }else if(t.dataset.tw!==undefined){
-    cur.tweets[+t.dataset.tw].text=t.value;updateCounts();save();
-  }
-});
-$('#editor').addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b||!cur) return;
-  if(b.dataset.copy){const k=b.dataset.copy;copy(k==='ticker'?T(cur):cur[k]||'',b);}
-  else if(b.dataset.copytw!==undefined) copy(fill(cur.tweets[+b.dataset.copytw].text,cur),b);
-  else if(b.dataset.post!==undefined) window.open('https://x.com/intent/post?text='+encodeURIComponent(fill(cur.tweets[+b.dataset.post].text,cur)),'_blank','noopener');
-  else if(b.dataset.rmtw!==undefined){cur.tweets.splice(+b.dataset.rmtw,1);$('#tweets').innerHTML=tweetsHTML();save(true);}
-  else if(b.id==='addTw'){cur.tweets.push({text:''});$('#tweets').innerHTML=tweetsHTML();save(true);const all=document.querySelectorAll('[data-tw]');all[all.length-1].focus();}
-  else if(b.id==='upImg') $('#imgIn').click();
-  else if(b.id==='dlImg'){const ext=(cur.image.match(/^data:image\/(\w+)/)||[,'png'])[1].replace('jpeg','jpg');download((T(cur)||'coin').toLowerCase()+'.'+ext,cur.image);}
-  else if(b.id==='rmImg'){cur.image='';save(true);renderEditor();}
-  else if(b.id==='delCoin'){
-    if(!confirm('Delete '+(T(cur)?'$'+T(cur):'this coin')+'? This can\u2019t be undone.')) return;
-    clearTimeout(timer);pending=null;const id=cur.id;coins=coins.filter(c=>c.id!==id);del(id);cur=null;
-    document.body.classList.remove('editing');renderList();renderEditor();
-  }
-});
-$('#editor').addEventListener('change',e=>{if(e.target.dataset.k==='status') save(true);});
-
-$('#imgIn').onchange=e=>{
-  const f=e.target.files[0];e.target.value='';if(!f||!cur) return;
-  const r=new FileReader();r.onload=()=>{cur.image=r.result;save(true);renderEditor();};r.readAsDataURL(f);
-};
-$('#exportBtn').onclick=()=>{
-  const blob=new Blob([JSON.stringify({version:1,exported:new Date().toISOString(),coins},null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);download('dev-vault-backup-'+new Date().toISOString().slice(0,10)+'.json',url);setTimeout(()=>URL.revokeObjectURL(url),2000);
-};
-$('#importBtn').onclick=()=>$('#importIn').click();
-$('#importIn').onchange=async e=>{
-  const f=e.target.files[0];e.target.value='';if(!f) return;
-  try{
-    const data=JSON.parse(await f.text());const list=Array.isArray(data)?data:data.coins;
-    if(!Array.isArray(list)) throw 0;
-    for(const c of list){if(c&&c.id){await put(c);const i=coins.findIndex(x=>x.id===c.id);i>-1?coins[i]=c:coins.push(c);}}
-    renderList();renderEditor();alert('Imported '+list.length+' coins.');
-  }catch{alert('That file isn\u2019t a Dev Vault backup.');}
-};
-
-/* boot */
-(async()=>{
-  if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
-  coins=await getAll();
-  if(!coins.length&&!localStorage.getItem('dv-seeded')){
-    const p=blank();p.name='Perception';p.notes='Based on Yazeed Aljohani\u2019s (@yazed_aljohani) painting "Perception". Creator fees go to his wallet, I hold a small supply. Message him on Instagram first.';
-    await put(p);coins=[p];
-  }
-  localStorage.setItem('dv-seeded','1');
-  renderList();renderEditor();
-})();
-</script>
-</body>
-</html>
+function playbook(d,r){
+  const p=[];
+  if(isNum(r.devBuy))p.push(`${esc(d.name)} opens with a median <b>${f2(r.devBuy)} SOL</b> dev buy`+(isNum(r.clusterSol)?` plus a <b>${f2(r.clusterCount,0)}-wallet cluster (~${f2(r.clusterSol)} SOL)</b>`:'')+(isNum(r.openPct)?`, taking <b>~${f2(r.openPct,0)}% of supply</b>`:'')+(isNum(r.entryMcap)&&isNum(r.openMcap)?` and moving mcap from ~${fmtK(r.entryMcap)} to <b>~${fmtK(r.openMcap)}</b> before outside buyers`:'')+'.');
+  if(isNum(r.firstMcap))p.push(`First dev sell lands around <b>${fmtK(r.firstMcap)}</b>`+(isNum(r.firstMult)?` (<b>${f2(r.firstMult,1)}x</b> from entry)`:'')+(isNum(r.firstPct)?`, selling <b>~${f2(r.firstPct,0)}% of the bag</b>`:'')+(isNum(r.outClean)?`; about <b>${f2(r.outClean,0)}% of the dev bag is out by ${fmtK(S.settings.cleanMcap)}</b>`:'')+'.');
+  if(isNum(r.recoveredRate))p.push(`He gets his initial back from early sells in <b>${f2(r.recoveredRate,0)}%</b> of logged launches.`);
+  if(isNum(r.devDay))p.push(`Daily: dev wallet averages <b class="${cls(r.devDay)}">${sg(r.devDay)}
